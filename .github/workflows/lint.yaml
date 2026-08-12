@@ -1,0 +1,32 @@
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    name: Shell
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install shfmt
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shfmt
+
+      - name: Check shell formatting
+        run: shfmt -d .
+
+      - name: Run ShellCheck
+        run: |
+          shopt -s globstar
+          shellcheck bootstrap/**/*.sh
