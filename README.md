@@ -1,10 +1,15 @@
 # Kind GitOps
 
-This repository defines a reproducible local Kubernetes environment with Kind.
+This repository defines a reproducible local Kubernetes environment with Kind
+and hands its in-cluster configuration to Argo CD.
 
 ## Ownership boundary
 
 Kind provisions the Kubernetes cluster itself.
+
+After the initial bootstrap, Argo CD reconciles Kubernetes resources from
+`clusters/local`, including its own installation. Provider processes such as
+Kind and cloud-provider-kind remain outside GitOps.
 
 ## Prerequisites
 
@@ -54,6 +59,34 @@ passes any additional arguments through to the controller.
 
 Cloud Provider KIND provides LoadBalancer and native Ingress support without
 mapping host ports directly to the control-plane node.
+
+## Bootstrap Argo CD
+
+After creating the Kind cluster, bootstrap Argo CD with one command:
+
+```bash
+./bootstrap/argocd/bootstrap.sh
+```
+
+The script requires the current Kubernetes context to be `kind-kind`. It
+installs the standard non-HA Argo CD `v3.5.1` distribution, waits for its
+controllers, and applies one root `Application`. The application follows the
+`main` branch of this public repository and continuously reconciles
+`clusters/local` with automated pruning and self-healing.
+
+The Argo CD `v3.5.1` installation source is pinned to the full release commit in
+both the bootstrap script and the cluster Kustomization. Re-running the
+bootstrap command safely reapplies the same desired state and waits for the root
+application to report `Synced` and `Healthy`; the Argo CD CLI and UI are not
+required.
+
+Verify the installation from the command line:
+
+```bash
+kubectl --context kind-kind --namespace argocd get applications.argoproj.io root
+kubectl --context kind-kind --namespace argocd get deployments
+kubectl --context kind-kind --namespace gitops-system get configmap reconciliation-smoke-test
+```
 
 ## Development checks
 
