@@ -22,18 +22,46 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
 }
 
+runtime_cluster_id() {
+  local runtime="$1"
+
+  "${runtime}" ps --all \
+    --filter "label=io.x-k8s.kind.cluster=${CLUSTER_NAME}" \
+    --format '{{.ID}} {{.Names}}' 2>/dev/null |
+    awk -v name="${CLUSTER_NAME}-control-plane" '$2 == name { print $1; exit }'
+}
+
+runtime_is_available() {
+  command -v "$1" >/dev/null 2>&1 && "$1" ps >/dev/null 2>&1
+}
+
 select_provider() {
-  if command -v podman >/dev/null 2>&1; then
-    export KIND_EXPERIMENTAL_PROVIDER=podman
+  local docker_available=false
+  local docker_cluster_id=""
+  local podman_available=false
+  local podman_cluster_id=""
+
+  runtime_is_available podman && podman_available=true
+  runtime_is_available docker && docker_available=true
+  ${podman_available} && podman_cluster_id="$(runtime_cluster_id podman)"
+  ${docker_available} && docker_cluster_id="$(runtime_cluster_id docker)"
+
+  if [[ -n "${podman_cluster_id}" && -n "${docker_cluster_id}" && "${podman_cluster_id}" != "${docker_cluster_id}" ]]; then
+    fail "cluster ${CLUSTER_NAME} exists in both Podman and Docker; remove the duplicate before continuing"
+  elif [[ -n "${podman_cluster_id}" ]]; then
     RUNTIME="podman"
-    printf 'Using Podman as the Kind provider.\n'
-  elif command -v docker >/dev/null 2>&1; then
-    export KIND_EXPERIMENTAL_PROVIDER=docker
+  elif [[ -n "${docker_cluster_id}" ]]; then
     RUNTIME="docker"
-    printf 'Using Docker as the Kind provider.\n'
+  elif ${podman_available}; then
+    RUNTIME="podman"
+  elif ${docker_available}; then
+    RUNTIME="docker"
   else
-    fail "no supported container runtime found; install Podman or Docker"
+    fail "no available container runtime found; install and start Podman or Docker"
   fi
+
+  export KIND_EXPERIMENTAL_PROVIDER="${RUNTIME}"
+  printf 'Using %s as the Kind provider.\n' "${RUNTIME^}"
 }
 
 start_cluster_nodes() {
@@ -69,8 +97,10 @@ cluster_exists() {
 
 verify_cluster() {
   local actual_version
+  local control_plane_count
   local node_count
   local ready_count
+  local worker_count
 
   kubectl config get-contexts "${CLUSTER_CONTEXT}" --no-headers >/dev/null 2>&1 ||
     fail "cluster exists but kube context ${CLUSTER_CONTEXT} is missing"
@@ -90,6 +120,15 @@ verify_cluster() {
   node_count="$(kubectl --context "${CLUSTER_CONTEXT}" get nodes --no-headers | wc -l | tr -d '[:space:]')"
   [[ "${node_count}" == "${EXPECTED_NODES}" ]] ||
     fail "cluster ${CLUSTER_NAME} has ${node_count} nodes; expected ${EXPECTED_NODES}; refusing to replace it"
+
+  control_plane_count="$(
+    kubectl --context "${CLUSTER_CONTEXT}" get nodes \
+      --selector='node-role.kubernetes.io/control-plane' --no-headers |
+      wc -l | tr -d '[:space:]'
+  )"
+  worker_count="$((node_count - control_plane_count))"
+  [[ "${control_plane_count}" == "1" && "${worker_count}" == "2" ]] ||
+    fail "cluster ${CLUSTER_NAME} has ${control_plane_count} control-plane and ${worker_count} worker nodes; expected 1 control-plane and 2 workers; refusing to replace it"
 
   ready_count="$(kubectl --context "${CLUSTER_CONTEXT}" get nodes --no-headers | awk '$2 == "Ready" { count++ } END { print count + 0 }')"
   [[ "${ready_count}" == "${EXPECTED_NODES}" ]] ||

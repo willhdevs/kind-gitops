@@ -27,7 +27,10 @@ From anywhere, run the kind bootstrap script:
 The script checks its prerequisites, and creates the
 cluster exclusively from `bootstrap/kind/kind-config.yaml`. If a cluster named
 `kind` already exists, the script starts any stopped node containers, waits for
-the cluster to become ready, and refuses to replace an incompatible cluster.
+the cluster to become ready, and refuses to replace an incompatible cluster. If
+both Podman and Docker are installed, it uses whichever runtime owns the
+existing cluster and refuses to continue if they contain distinct clusters
+named `kind`.
 
 Expected result:
 
@@ -46,8 +49,8 @@ In a separate terminal, run:
 
 The launcher runs `cloud-provider-kind` in the foreground so its logs and
 lifecycle remain visible. It discovers the binary on `PATH` or under
-`${GOPATH:-$HOME/go}/bin`, prefers Podman when both supported runtimes are
-installed, and passes any additional arguments through to the controller.
+`${GOPATH:-$HOME/go}/bin`, selects the runtime that owns the `kind` cluster, and
+passes any additional arguments through to the controller.
 
 Cloud Provider KIND provides LoadBalancer and native Ingress support without
 mapping host ports directly to the control-plane node.

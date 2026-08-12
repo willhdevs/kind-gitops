@@ -2,6 +2,9 @@
 
 set -Eeuo pipefail
 
+readonly CLUSTER_NAME="kind"
+RUNTIME=""
+
 fail() {
   printf 'error: %s\n' "$*" >&2
   exit 1
@@ -21,16 +24,42 @@ find_cloud_provider_kind() {
   printf '%s\n' "${go_bin}"
 }
 
+runtime_cluster_id() {
+  local runtime="$1"
+
+  "${runtime}" ps --all \
+    --filter "label=io.x-k8s.kind.cluster=${CLUSTER_NAME}" \
+    --format '{{.ID}} {{.Names}}' 2>/dev/null |
+    awk -v name="${CLUSTER_NAME}-control-plane" '$2 == name { print $1; exit }'
+}
+
+runtime_is_available() {
+  command -v "$1" >/dev/null 2>&1 && "$1" ps >/dev/null 2>&1
+}
+
 select_provider() {
-  if command -v podman >/dev/null 2>&1; then
-    export KIND_EXPERIMENTAL_PROVIDER=podman
-    printf 'Using Podman as the cloud-provider-kind runtime.\n'
-  elif command -v docker >/dev/null 2>&1; then
-    export KIND_EXPERIMENTAL_PROVIDER=docker
-    printf 'Using Docker as the cloud-provider-kind runtime.\n'
+  local docker_available=false
+  local docker_cluster_id=""
+  local podman_available=false
+  local podman_cluster_id=""
+
+  runtime_is_available podman && podman_available=true
+  runtime_is_available docker && docker_available=true
+  ${podman_available} && podman_cluster_id="$(runtime_cluster_id podman)"
+  ${docker_available} && docker_cluster_id="$(runtime_cluster_id docker)"
+
+  if [[ -n "${podman_cluster_id}" && -n "${docker_cluster_id}" && "${podman_cluster_id}" != "${docker_cluster_id}" ]]; then
+    fail "cluster ${CLUSTER_NAME} exists in both Podman and Docker; remove the duplicate before continuing"
+  elif [[ -n "${podman_cluster_id}" ]]; then
+    RUNTIME="podman"
+  elif [[ -n "${docker_cluster_id}" ]]; then
+    RUNTIME="docker"
   else
-    fail "no supported container runtime found; install Podman or Docker"
+    fail "cluster ${CLUSTER_NAME} was not found in Podman or Docker; create it before starting cloud-provider-kind"
   fi
+
+  export KIND_EXPERIMENTAL_PROVIDER="${RUNTIME}"
+  printf 'Using %s as the cloud-provider-kind runtime.\n' "${RUNTIME^}"
 }
 
 main() {
