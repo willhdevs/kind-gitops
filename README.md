@@ -119,9 +119,7 @@ healthy.
 ECK manages Elasticsearch and Kibana. Elasticsearch uses persistent storage,
 and the existing Prometheus deployment scrapes the ECK operator.
 
-The Elasticsearch node uses a fixed 512 MiB JVM heap. System indices use zero
-replicas; application index templates must also set `index.number_of_replicas`
-to `0`.
+The Elasticsearch node uses a fixed 512 MiB JVM heap.
 
 ECK secures local endpoints with generated credentials and TLS. Retrieve the
 generated `elastic` user password before connecting:
