@@ -130,7 +130,7 @@ In separate terminals, forward Elasticsearch and Kibana locally:
 
 ```bash
 kubectl --context kind-kind --namespace elastic-stack port-forward service/elasticsearch-es-http 9200:9200
-kubectl --context kind-kind --namespace elastic-stack port-forward service/kibana-kb-http 5601:5601
+kubectl --context kind-kind --namespace elastic-stack port-forward service/elastic-stack-eck-kibana-kb-http 5601:5601
 ```
 
 Elasticsearch is available at <https://localhost:9200> and Kibana at

@@ -4,5 +4,3 @@ namespace: argocd
 resources:
   # Argo CD v3.5.1 release commit.
   - https://raw.githubusercontent.com/argoproj/argo-cd/109ca7ca71139e514114499d294a492e7910a965/manifests/install.yaml
-patches:
-  - path: application-health.yaml
