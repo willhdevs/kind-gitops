@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: elastic-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.elastic.co
+      chart: eck-operator
+      targetRevision: 3.5.0
+      helm:
+        releaseName: elastic-stack
+        valuesObject:
+          config:
+            metrics:
+              port: 8080
+    - repoURL: https://helm.elastic.co
+      chart: eck-stack
+      targetRevision: 0.20.0
+      helm:
+        releaseName: elastic-stack
+        valuesObject:
+          eck-elasticsearch:
+            version: 9.5.0
+            nodeSets:
+              - name: default
+                count: 1
+                config:
+                  node.store.allow_mmap: false
+                volumeClaimTemplates:
+                  - metadata:
+                      name: elasticsearch-data
+                    spec:
+                      accessModes:
+                        - ReadWriteOnce
+                      resources:
+                        requests:
+                          storage: 5Gi
+                      storageClassName: standard
+          eck-kibana:
+            version: 9.5.0
+            count: 1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: elastic-stack
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
