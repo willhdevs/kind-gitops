@@ -17,12 +17,6 @@ spec:
           config:
             metrics:
               port: 8080
-          podMonitor:
-            enabled: true
-            labels:
-              release: monitoring
-            interval: 30s
-            scrapeTimeout: 10s
     - repoURL: https://helm.elastic.co
       chart: eck-stack
       targetRevision: 0.20.0

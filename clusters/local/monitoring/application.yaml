@@ -18,6 +18,22 @@ spec:
       valuesObject:
         extraManifests:
           - apiVersion: monitoring.coreos.com/v1
+            kind: PodMonitor
+            metadata:
+              name: eck-operator
+              namespace: elastic-stack
+              labels:
+                release: monitoring
+            spec:
+              selector:
+                matchLabels:
+                  control-plane: elastic-operator
+              podMetricsEndpoints:
+                - port: metrics
+                  path: /metrics
+                  interval: 30s
+                  scrapeTimeout: 10s
+          - apiVersion: monitoring.coreos.com/v1
             kind: ServiceMonitor
             metadata:
               name: argocd-application-controller
