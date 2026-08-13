@@ -114,30 +114,6 @@ kubectl --context kind-kind --namespace monitoring port-forward service/monitori
 Visit <http://localhost:9090/targets> and confirm the expected targets are
 healthy.
 
-## Use the Elastic stack
-
-ECK manages Elasticsearch and Kibana. Elasticsearch uses persistent storage,
-and the existing Prometheus deployment scrapes the ECK operator.
-
-ECK secures local endpoints with generated credentials and TLS. Retrieve the
-generated `elastic` user password before connecting:
-
-```bash
-kubectl --context kind-kind --namespace elastic-stack get secret elasticsearch-es-elastic-user -o go-template='{{.data.elastic | base64decode}}{{"\n"}}'
-```
-
-In separate terminals, forward Elasticsearch and Kibana locally:
-
-```bash
-kubectl --context kind-kind --namespace elastic-stack port-forward service/elasticsearch-es-http 9200:9200
-kubectl --context kind-kind --namespace elastic-stack port-forward service/kibana-kb-http 5601:5601
-```
-
-Elasticsearch is available at <https://localhost:9200> and Kibana at
-<https://localhost:5601>. Local tools may require an insecure TLS option unless
-you export and trust the ECK-generated CA. Sign in to Kibana as `elastic` with
-the generated password.
-
 ## Development checks
 
 Shell scripts use the style defined in `.editorconfig`. Run the same checks used
