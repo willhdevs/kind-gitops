@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: eck-operator
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.elastic.co
+    chart: eck-operator
+    targetRevision: 3.5.0
+    helm:
+      releaseName: eck-operator
+      valuesObject:
+        config:
+          metrics:
+            port: 8080
+        podMonitor:
+          enabled: true
+          labels:
+            release: monitoring
+          interval: 30s
+          scrapeTimeout: 10s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: elastic-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
