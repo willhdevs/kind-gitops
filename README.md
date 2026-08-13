@@ -88,6 +88,32 @@ kubectl --context kind-kind --namespace argocd get deployments
 kubectl --context kind-kind --namespace gitops-system get configmap reconciliation-smoke-test
 ```
 
+## Monitor the cluster
+
+The root application reconciles Prometheus in the `monitoring` namespace.
+
+Verify reconciliation, workloads, and storage:
+
+```bash
+kubectl --context kind-kind --namespace argocd get applications.argoproj.io root monitoring
+kubectl --context kind-kind --namespace monitoring get deployments,statefulsets,pods
+kubectl --context kind-kind --namespace monitoring get persistentvolumeclaims
+kubectl --context kind-kind --namespace argocd get servicemonitors.monitoring.coreos.com
+```
+
+Both Argo CD applications should report `Synced` and `Healthy`, the monitoring
+workloads should be ready, and the Prometheus claim should be `Bound` with the
+`standard` storage class and a 5 GiB request.
+
+Open the Prometheus web UI locally:
+
+```bash
+kubectl --context kind-kind --namespace monitoring port-forward service/monitoring-kube-prometheus-prometheus 9090:9090
+```
+
+Visit <http://localhost:9090/targets> and confirm the expected targets are
+healthy.
+
 ## Development checks
 
 Shell scripts use the style defined in `.editorconfig`. Run the same checks used
