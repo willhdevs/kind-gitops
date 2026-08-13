@@ -140,12 +140,16 @@ the generated password.
 
 ## Development checks
 
-Shell scripts use the style defined in `.editorconfig`. Run the same checks used
-by GitHub Actions before pushing:
+Run the same lint and manifest checks used by GitHub Actions before pushing:
 
 ```bash
+yamllint --strict .
+kubectl kustomize clusters/local > /tmp/kind-gitops-manifests.yaml
+kubeconform -strict -ignore-missing-schemas -summary -kubernetes-version 1.33.12 /tmp/kind-gitops-manifests.yaml bootstrap/argocd/root-application.yaml
 shfmt -d .
 shellcheck bootstrap/**/*.sh
 ```
 
-Use `shfmt -w .` to format shell scripts in place. CI runs on Ubuntu 26.04.
+Use `shfmt -w .` to format shell scripts in place. Kubeconform skips resources
+whose schemas are unavailable; Helm rendering and cluster-side validation are
+outside the scope of these checks.

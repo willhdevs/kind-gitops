@@ -10,6 +10,46 @@ permissions:
   contents: read
 
 jobs:
+  yaml:
+    name: YAML
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show yamllint version
+        run: yamllint --version
+
+      - name: Lint YAML
+        run: yamllint --strict .
+
+  kubernetes:
+    name: Kubernetes
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show kubectl version
+        run: kubectl version --client
+
+      - name: Render Kubernetes manifests
+        run: kubectl kustomize clusters/local > .kubeconform-rendered.yaml
+
+      - name: Validate Kubernetes manifests
+        uses: docker://ghcr.io/yannh/kubeconform@sha256:faffaf43f95aa6425306e1ab8d6fcad72acb9049158f38e574c085ea1ec0f64e
+        with:
+          entrypoint: /kubeconform
+          args: >-
+            -strict
+            -ignore-missing-schemas
+            -summary
+            -kubernetes-version 1.33.12
+            .kubeconform-rendered.yaml
+            bootstrap/argocd/root-application.yaml
+
   shell:
     name: Shell
     runs-on: ubuntu-26.04
