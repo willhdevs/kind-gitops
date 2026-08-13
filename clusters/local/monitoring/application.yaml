@@ -1,0 +1,140 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 88.3.0
+    helm:
+      releaseName: monitoring
+      valuesObject:
+        extraManifests:
+          - apiVersion: monitoring.coreos.com/v1
+            kind: ServiceMonitor
+            metadata:
+              name: argocd-application-controller
+              namespace: argocd
+              labels:
+                release: monitoring
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: argocd-metrics
+              endpoints:
+                - port: metrics
+                  interval: 30s
+          - apiVersion: monitoring.coreos.com/v1
+            kind: ServiceMonitor
+            metadata:
+              name: argocd-applicationset-controller
+              namespace: argocd
+              labels:
+                release: monitoring
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: argocd-applicationset-controller
+              endpoints:
+                - port: metrics
+                  interval: 30s
+          - apiVersion: monitoring.coreos.com/v1
+            kind: ServiceMonitor
+            metadata:
+              name: argocd-notifications-controller
+              namespace: argocd
+              labels:
+                release: monitoring
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: argocd-notifications-controller-metrics
+              endpoints:
+                - port: metrics
+                  interval: 30s
+          - apiVersion: monitoring.coreos.com/v1
+            kind: ServiceMonitor
+            metadata:
+              name: argocd-repo-server
+              namespace: argocd
+              labels:
+                release: monitoring
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: argocd-repo-server
+              endpoints:
+                - port: metrics
+                  interval: 30s
+          - apiVersion: monitoring.coreos.com/v1
+            kind: ServiceMonitor
+            metadata:
+              name: argocd-api-server
+              namespace: argocd
+              labels:
+                release: monitoring
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: argocd-server-metrics
+              endpoints:
+                - port: metrics
+                  interval: 30s
+        alertmanager:
+          enabled: false
+        defaultRules:
+          create: false
+        grafana:
+          enabled: false
+        kubeApiServer:
+          enabled: true
+        kubeControllerManager:
+          enabled: false
+        coreDns:
+          enabled: true
+        kubeEtcd:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubelet:
+          enabled: true
+        kubeStateMetrics:
+          enabled: true
+        nodeExporter:
+          enabled: true
+        prometheusOperator:
+          enabled: true
+        prometheus:
+          enabled: true
+          prometheusSpec:
+            replicas: 1
+            retention: 7d
+            podMonitorNamespaceSelector: {}
+            serviceMonitorNamespaceSelector: {}
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: standard
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 5Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
