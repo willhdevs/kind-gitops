@@ -22,7 +22,7 @@ jobs:
         run: yamllint --version
 
       - name: Lint YAML
-        run: yamllint --strict .
+        run: ./scripts/check.sh yaml
 
   kubernetes:
     name: Kubernetes
@@ -35,20 +35,8 @@ jobs:
       - name: Show kubectl version
         run: kubectl version --client
 
-      - name: Render Kubernetes manifests
-        run: kubectl kustomize clusters/local > .kubeconform-rendered.yaml
-
       - name: Validate Kubernetes manifests
-        uses: docker://ghcr.io/yannh/kubeconform@sha256:faffaf43f95aa6425306e1ab8d6fcad72acb9049158f38e574c085ea1ec0f64e
-        with:
-          entrypoint: /kubeconform
-          args: >-
-            -strict
-            -ignore-missing-schemas
-            -summary
-            -kubernetes-version 1.35.5
-            .kubeconform-rendered.yaml
-            bootstrap/argocd/root-application.yaml
+        run: ./scripts/check.sh kubernetes
 
   shell:
     name: Shell
@@ -63,10 +51,5 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes shfmt
 
-      - name: Check shell formatting
-        run: shfmt -d .
-
-      - name: Run ShellCheck
-        run: |
-          shopt -s globstar
-          shellcheck bootstrap/**/*.sh
+      - name: Check shell scripts
+        run: ./scripts/check.sh shell

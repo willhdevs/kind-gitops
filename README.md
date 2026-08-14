@@ -172,13 +172,12 @@ so ingestion may pause until the next template refresh after a restart.
 Run the same lint and manifest checks used by GitHub Actions before pushing:
 
 ```bash
-yamllint --strict .
-kubectl kustomize clusters/local > /tmp/kind-gitops-manifests.yaml
-kubeconform -strict -ignore-missing-schemas -summary /tmp/kind-gitops-manifests.yaml bootstrap/argocd/root-application.yaml
-shfmt -d .
-shellcheck bootstrap/**/*.sh
+./scripts/check.sh
 ```
 
-Use `shfmt -w .` to format shell scripts in place. Kubeconform skips resources
-whose schemas are unavailable; Helm rendering and cluster-side validation are
-outside the scope of these checks.
+The script derives the Kubernetes schema version from the digest-pinned Kind
+node image. It uses a local `kubeconform` binary when available, or runs the
+pinned container image with Podman or Docker. Use `shfmt -w .` to format shell
+scripts in place. Kubeconform skips resources whose schemas are unavailable;
+Helm rendering and cluster-side validation are outside the scope of these
+checks.
