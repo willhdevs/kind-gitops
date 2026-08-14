@@ -116,8 +116,11 @@ healthy.
 
 ## Use the Elastic stack
 
-ECK manages Elasticsearch and Kibana. Elasticsearch uses persistent storage,
-and the existing Prometheus deployment scrapes the ECK operator.
+ECK manages Elasticsearch, Kibana, and a single-replica Fleet Server, which is
+the stack's only Elastic Agent. Kibana initializes Fleet declaratively with
+the `elastic_agent` and `fleet_server` packages and the managed
+`eck-fleet-server` policy. Elasticsearch uses persistent storage, and Prometheus
+scrapes the ECK operator.
 
 The Elasticsearch node uses a fixed 512 MiB JVM heap. Application index
 templates must set `index.number_of_replicas` to `0`.
@@ -133,7 +136,7 @@ In separate terminals, forward Elasticsearch and Kibana locally:
 
 ```bash
 kubectl --context kind-kind --namespace elastic-stack port-forward service/elasticsearch-es-http 9200:9200
-kubectl --context kind-kind --namespace elastic-stack port-forward service/elastic-stack-eck-kibana-kb-http 5601:5601
+kubectl --context kind-kind --namespace elastic-stack port-forward service/kibana-kb-http 5601:5601
 ```
 
 Elasticsearch is available at <https://localhost:9200> and Kibana at

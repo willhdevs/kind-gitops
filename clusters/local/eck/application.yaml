@@ -24,6 +24,8 @@ spec:
         releaseName: elastic-stack
         valuesObject:
           eck-elasticsearch:
+            enabled: true
+            fullnameOverride: elasticsearch
             version: 9.5.0
             nodeSets:
               - name: default
@@ -48,8 +50,50 @@ spec:
                           storage: 5Gi
                       storageClassName: standard
           eck-kibana:
+            enabled: true
+            fullnameOverride: kibana
             version: 9.5.0
             count: 1
+            elasticsearchRef:
+              name: elasticsearch
+            config:
+              xpack.fleet.agents.elasticsearch.hosts:
+                - https://elasticsearch-es-http.elastic-stack.svc:9200
+              xpack.fleet.agents.fleet_server.hosts:
+                - https://fleet-server-agent-http.elastic-stack.svc:8220
+              xpack.fleet.packages:
+                - name: elastic_agent
+                  version: 2.9.4
+                - name: fleet_server
+                  version: 1.6.1
+              xpack.fleet.agentPolicies:
+                - name: Fleet Server on ECK policy
+                  id: eck-fleet-server
+                  namespace: default
+                  is_managed: true
+                  monitoring_enabled:
+                    - logs
+                    - metrics
+                  package_policies:
+                    - name: fleet_server-1
+                      id: fleet_server-1
+                      package:
+                        name: fleet_server
+          eck-fleet-server:
+            enabled: true
+            version: 9.5.0
+            fullnameOverride: fleet-server
+            policyID: eck-fleet-server
+            kibanaRef:
+              name: kibana
+            elasticsearchRefs:
+              - name: elasticsearch
+            deployment:
+              replicas: 1
+              podTemplate:
+                spec:
+                  serviceAccountName: fleet-server
+                  automountServiceAccountToken: true
   destination:
     server: https://kubernetes.default.svc
     namespace: elastic-stack
