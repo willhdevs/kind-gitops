@@ -60,6 +60,17 @@ passes any additional arguments through to the controller.
 Cloud Provider KIND provides LoadBalancer and native Ingress support without
 mapping host ports directly to the control-plane node.
 
+The Fleet Server Agent receives NetFlow/IPFIX through the
+`fleet-server-netflow` LoadBalancer on `2055/UDP`. Route the exporter or its
+tunnel to the address or host port assigned by cloud-provider-kind.
+
+## Provide the abuse.ch credential
+
+Before Argo CD reconciles the Elastic stack, create Secret
+`elastic-stack/abusech-api-credentials` with the abuse.ch Auth-Key in key
+`auth-key`. The key is consumed by Kibana at startup, so restart Kibana after
+rotating the Secret.
+
 ## Bootstrap Argo CD
 
 After creating the Kind cluster, bootstrap Argo CD with one command:
@@ -118,9 +129,10 @@ healthy.
 
 ECK manages Elasticsearch, Kibana, and a single-replica Fleet Server, which is
 the stack's only Elastic Agent. Kibana initializes Fleet declaratively with
-the `elastic_agent` and `fleet_server` packages and the managed
-`eck-fleet-server` policy. Elasticsearch uses persistent storage, and Prometheus
-scrapes the ECK operator.
+the `elastic_agent`, `fleet_server`, NetFlow, and abuse.ch packages and the
+managed `eck-fleet-server` policy. NetFlow listens on `0.0.0.0:2055/UDP`.
+Only the ThreatFox abuse.ch stream is enabled. Elasticsearch uses persistent
+storage, and Prometheus scrapes the ECK operator.
 
 The Elasticsearch node uses a fixed 512 MiB JVM heap. Application index
 templates must set `index.number_of_replicas` to `0`.
@@ -143,6 +155,17 @@ Elasticsearch is available at <https://localhost:9200> and Kibana at
 <https://localhost:5601>. Local tools may require an insecure TLS option unless
 you export and trust the ECK-generated CA. Sign in to Kibana as `elastic` with
 the generated password.
+
+### Verify NetFlow and ThreatFox ingestion
+
+Use `data_stream.dataset: "netflow.log"` and
+`data_stream.dataset: "ti_abusech.threatfox"` against `logs-*`. Active,
+unexpired indicators are written to `logs-ti_abusech_latest.dest_threatfox*`;
+verify correlation fields with
+`threat.indicator.ip:* or threat.indicator.url.domain:*`.
+
+NetFlow v9 and IPFIX require an exporter template before records can be decoded,
+so ingestion may pause until the next template refresh after a restart.
 
 ## Development checks
 
