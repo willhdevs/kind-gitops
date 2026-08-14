@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 readonly CLUSTER_NAME="kind"
 readonly CLUSTER_CONTEXT="kind-kind"
-readonly EXPECTED_VERSION="v1.33.12"
+readonly EXPECTED_VERSION="v1.35.5"
 readonly EXPECTED_NODES="3"
 readonly READY_TIMEOUT="5m"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
