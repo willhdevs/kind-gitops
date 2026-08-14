@@ -73,7 +73,7 @@ main() {
   fi
 
   printf 'Starting cloud-provider-kind; press Ctrl-C to stop it.\n'
-  exec "${cloud_provider_kind}" "$@"
+  exec "${cloud_provider_kind}" --enable-lb-port-mapping "$@"
 }
 
 main "$@"

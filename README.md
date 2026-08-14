@@ -55,7 +55,8 @@ In a separate terminal, run:
 The launcher runs `cloud-provider-kind` in the foreground so its logs and
 lifecycle remain visible. It discovers the binary on `PATH` or under
 `${GOPATH:-$HOME/go}/bin`, selects the runtime that owns the `kind` cluster, and
-passes any additional arguments through to the controller.
+enables host port mappings for LoadBalancer services. Any additional arguments
+are passed through to the controller.
 
 Cloud Provider KIND provides LoadBalancer and native Ingress support without
 mapping host ports directly to the control-plane node.
