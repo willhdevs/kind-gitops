@@ -19,7 +19,7 @@ Kind and cloud-provider-kind remain outside GitOps.
 - Podman or Docker (tested with Podman `v5.8.4`)
 
 The Kind node image is pinned in the cluster configuration, so every node runs
-Kubernetes `v1.33.12` from the same content-addressed image.
+the configured Kubernetes version from the same content-addressed image.
 
 ## Create the cluster
 
@@ -42,7 +42,7 @@ Expected result:
 - Kind cluster: `kind`
 - kubectl context: `kind-kind`
 - Topology: one control-plane and two worker nodes
-- Kubernetes: `v1.33.12`
+- Kubernetes: version pinned in `bootstrap/kind/kind-config.yaml`
 
 ## Run the local cloud provider
 
@@ -80,12 +80,12 @@ After creating the Kind cluster, bootstrap Argo CD with one command:
 ```
 
 The script requires the current Kubernetes context to be `kind-kind`. It
-installs the standard non-HA Argo CD `v3.5.1` distribution, waits for its
+installs the pinned standard non-HA Argo CD distribution, waits for its
 controllers, and applies one root `Application`. The application follows the
 `main` branch of this public repository and continuously reconciles
 `clusters/local` with automated pruning and self-healing.
 
-The Argo CD `v3.5.1` installation source is pinned to the full release commit in
+The Argo CD installation source is pinned to the full release commit in
 both the bootstrap script and the cluster Kustomization. Re-running the
 bootstrap command safely reapplies the same desired state and waits for the root
 application to report `Synced` and `Healthy`; the Argo CD CLI and UI are not
@@ -174,7 +174,7 @@ Run the same lint and manifest checks used by GitHub Actions before pushing:
 ```bash
 yamllint --strict .
 kubectl kustomize clusters/local > /tmp/kind-gitops-manifests.yaml
-kubeconform -strict -ignore-missing-schemas -summary -kubernetes-version 1.33.12 /tmp/kind-gitops-manifests.yaml bootstrap/argocd/root-application.yaml
+kubeconform -strict -ignore-missing-schemas -summary /tmp/kind-gitops-manifests.yaml bootstrap/argocd/root-application.yaml
 shfmt -d .
 shellcheck bootstrap/**/*.sh
 ```
