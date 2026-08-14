@@ -66,6 +66,10 @@ spec:
                   version: 2.9.4
                 - name: fleet_server
                   version: 1.6.1
+                - name: netflow
+                  version: 2.25.1
+                - name: ti_abusech
+                  version: 4.2.0
               xpack.fleet.agentPolicies:
                 - name: Fleet Server on ECK policy
                   id: eck-fleet-server
@@ -79,6 +83,57 @@ spec:
                       id: fleet_server-1
                       package:
                         name: fleet_server
+                    - name: netflow-1
+                      id: netflow-1
+                      package:
+                        name: netflow
+                      inputs:
+                        netflow-netflow:
+                          enabled: true
+                          streams:
+                            '[netflow.log]':
+                              enabled: true
+                              vars:
+                                host: 0.0.0.0
+                                port: 2055
+                                internal_networks:
+                                  - private
+                    - name: ti_abusech-1
+                      id: ti_abusech-1
+                      package:
+                        name: ti_abusech
+                      inputs:
+                        ti_abusech-cel:
+                          enabled: true
+                          vars:
+                            auth_key: ${ABUSECH_AUTH_KEY}
+                          streams:
+                            '[ti_abusech.ja3_fingerprints]':
+                              enabled: false
+                            '[ti_abusech.malware]':
+                              enabled: false
+                            '[ti_abusech.malwarebazaar]':
+                              enabled: false
+                            '[ti_abusech.sslblacklist]':
+                              enabled: false
+                            '[ti_abusech.threatfox]':
+                              enabled: true
+                              vars:
+                                interval: 24h
+                                initial_interval: 7
+                                ioc_expiration_duration: 90d
+                            '[ti_abusech.url]':
+                              enabled: false
+            podTemplate:
+              spec:
+                containers:
+                  - name: kibana
+                    env:
+                      - name: ABUSECH_AUTH_KEY
+                        valueFrom:
+                          secretKeyRef:
+                            name: abusech-api-credentials
+                            key: auth-key
           eck-fleet-server:
             enabled: true
             version: 9.5.0
@@ -96,6 +151,30 @@ spec:
                   automountServiceAccountToken: true
                   securityContext:
                     runAsUser: 0
+                  containers:
+                    - name: agent
+                      ports:
+                        - name: netflow
+                          containerPort: 2055
+                          protocol: UDP
+            extraObjects:
+              - |
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: fleet-server-netflow
+                  namespace: {{ .Release.Namespace }}
+                spec:
+                  type: LoadBalancer
+                  externalTrafficPolicy: Cluster
+                  selector:
+                    agent.k8s.elastic.co/name: fleet-server
+                    common.k8s.elastic.co/type: agent
+                  ports:
+                    - name: netflow
+                      protocol: UDP
+                      port: 2055
+                      targetPort: netflow
   destination:
     server: https://kubernetes.default.svc
     namespace: elastic-stack
